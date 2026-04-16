@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>내게 맞는 월경통 약 찾기</title>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+    <style>
+        :root {
+            --main-pink: #f25287;
+            --soft-pink: #fff5f7;
+            --text-dark: #191f28;
+            --text-gray: #4e5968;
+            --bg-gray: #f9fafb;
+        }
+
+        body {
+            font-family: "Pretendard", -apple-system, sans-serif;
+            background-color: var(--bg-gray);
+            color: var(--text-dark);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #app {
+            background: white;
+            width: 90%;
+            max-width: 450px;
+            padding: 40px 24px;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+
+        /* 프로그레스 바 */
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e5e8eb;
+            border-radius: 3px;
+            margin-bottom: 40px;
+        }
+        .progress {
+            height: 100%;
+            background: var(--main-pink);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .question { font-size: 22px; font-weight: 700; margin-bottom: 30px; word-break: keep-all; }
+        
+        button {
+            width: 100%;
+            padding: 18px;
+            margin-bottom: 12px;
+            border: 1px solid #e5e8eb;
+            border-radius: 16px;
+            background: white;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        button:hover {
+            background-color: var(--soft-pink);
+            border-color: var(--main-pink);
+            color: var(--main-pink);
+        }
+
+        /* 결과 화면 디자인 */
+        .result-card { text-align: left; }
+        .result-title { font-size: 24px; font-weight: 700; color: var(--main-pink); margin-bottom: 8px; }
+        .result-tag { display: inline-block; padding: 4px 10px; background: var(--soft-pink); color: var(--main-pink); border-radius: 8px; font-size: 13px; font-weight: 600; margin-right: 5px; margin-bottom: 15px; }
+        .result-box { background: var(--bg-gray); padding: 20px; border-radius: 16px; margin-bottom: 20px; }
+        .result-box h4 { margin: 0 0 8px 0; font-size: 14px; color: var(--text-gray); }
+        .result-box p { margin: 0; font-size: 15px; line-height: 1.5; font-weight: 500; }
+        .warning { color: #df1f1f; font-size: 13px; margin-top: 10px; display: block; }
+
+        .share-btn { background: #333d4b; color: white; border: none; margin-top: 20px; }
+        .share-btn:hover { background: #191f28; color: white; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div class="progress-bar"><div class="progress" id="progress"></div></div>
+    <div id="content">
+        </div>
+</div>
+
+<script>
+    const medicineDB = {
+        "부스코판": { name: "부스코판 플러스", desc: "쥐어짜는 듯한 통증을 직접 풀어줍니다.", dosage: "1회 1-2정, 1일 3회", warning: "3일 이상 복용 시 전문가 상담 필요", tags: ["#경련완화", "#진경성분"] },
+        "탁센": { name: "탁센 / 이지엔6 스트롱", desc: "강력하고 오래가는 효과로 심한 통증에 유리합니다.", dosage: "첫 복용 2알 후 6-8시간 간격", warning: "위장장애 주의, 반드시 식후 복용", tags: ["#강력진통", "#나프록센"] },
+        "레이디원": { name: "레이디원 (고함량)", desc: "이부프로펜 400mg으로 한 알로 강력하게 잡는 붓기+통증", dosage: "1일 1-3회, 1회 1캡슐", warning: "고함량이므로 1알만 복용하세요.", tags: ["#이부프로펜400mg", "#붓기완화"] },
+        "탁센레이디": { name: "탁센 레이디", desc: "붓기, 속쓰림, 경련을 한 번에 케어하는 복합제", dosage: "1일 1-3회, 1회 1-2캡슐", warning: "마그네슘 포함으로 설사 유발 주의", tags: ["#붓기완화", "#위장보호"] },
+        "이지엔6이브": { name: "이지엔6 이브", desc: "빠른 액상형으로 붓기와 통증을 조기에 완화", dosage: "1일 1-3회, 1회 1-2캡슐", warning: "공복 복용 피할 것", tags: ["#빠른효과", "#붓기완화"] },
+        "타이레놀": { name: "우먼스 타이레놀", desc: "위장장애 걱정 없는 순한 진통제", dosage: "1회 1-2정, 6시간 간격", warning: "음주 절대 금지! 간 손상 주의", tags: ["#빈속가능", "#순한진통"] },
+        "애드빌": { name: "애드빌", desc: "단일 성분으로 군더더기 없는 진통 효과", dosage: "1회 1-2정, 1일 3-4회", warning: "붓기 완화 성분 없음", tags: ["#단일성분", "#글로벌1위"] }
+    };
+
+    let step = 1;
+    let answers = {};
+
+    function render() {
+        const content = document.getElementById('content');
+        const progress = document.getElementById('progress');
+        progress.style.width = (step / 4 * 100) + '%';
+
+        if(step === 1) {
+            content.innerHTML = `
+                <div class="question">어떤 느낌으로 통증이 오시나요?</div>
+                <button onclick="next(1, 'cramp')">배를 쥐어짜는 듯한 느낌</button>
+                <button onclick="next(1, 'normal')">묵직하고 욱신거리는 느낌</button>
+            `;
+        } else if(step === 2) {
+            content.innerHTML = `
+                <div class="question">통증의 강도는 어느 정도인가요?</div>
+                <button onclick="next(2, 'low')">가벼움 (일상생활 가능)</button>
+                <button onclick="next(2, 'mid')">보통 (집중 어려움)</button>
+                <button onclick="next(2, 'high')">심함 (누워있어야 함)</button>
+            `;
+        } else if(step === 3) {
+            content.innerHTML = `
+                <div class="question">손발이 붓거나 몸이 무거운 편인가요?</div>
+                <button onclick="next(3, 'y')">예, 자주 부어요</button>
+                <button onclick="next(3, 'n')">아니오, 괜찮아요</button>
+            `;
+        } else if(step === 4) {
+            content.innerHTML = `
+                <div class="question">빈속에 약을 먹으면 속이 쓰린가요?</div>
+                <button onclick="next(4, 'y')">예, 위장이 예민해요</button>
+                <button onclick="next(4, 'n')">아니오, 괜찮아요</button>
+            `;
+        } else {
+            showResult();
+        }
+    }
+
+    function next(s, val) {
+        answers[s] = val;
+        if(s === 1 && val === 'cramp') { showResult('부스코판'); return; }
+        if(s === 2 && val === 'high') { showResult('탁센'); return; }
+        step++;
+        render();
+    }
+
+    function showResult(key) {
+        if(!key) {
+            if(answers[3] === 'y' && answers[4] === 'y') key = '탁센레이디';
+            else if(answers[3] === 'y' && answers[4] === 'n') key = (answers[2] === 'mid') ? '레이디원' : '이지엔6이브';
+            else if(answers[3] === 'n' && answers[4] === 'y') key = '타이레놀';
+            else key = '애드빌';
+        }
+        
+        const res = medicineDB[key];
+        document.getElementById('progress').style.width = '100%';
+        document.getElementById('content').innerHTML = `
+            <div class="result-card">
+                <div class="result-title">${res.name}</div>
+                <div>${res.tags.map(t => `<span class="result-tag">${t}</span>`).join('')}</div>
+                <p style="margin-bottom:20px; color:var(--text-gray);">${res.desc}</p>
+                <div class="result-box">
+                    <h4>💊 용법/용량</h4>
+                    <p>${res.dosage}</p>
+                </div>
+                <div class="result-box">
+                    <h4>⚠️ 주의사항</h4>
+                    <p>${res.warning}</p>
+                </div>
+                <button class="share-btn" onclick="shareResult('${res.name}')">결과 공유하기</button>
+                <button onclick="location.reload()" style="background:none; border:none; color:var(--text-gray); text-decoration:underline; font-size:14px;">다시 테스트하기</button>
+            </div>
+        `;
+    }
+
+    function shareResult(name) {
+        if (navigator.share) {
+            navigator.share({
+                title: '나에게 맞는 생리통 약 추천',
+                text: `나에게 딱 맞는 약은 [${name}] 입니다!`,
+                url: window.location.href,
+            });
+        } else {
+            alert('공유하기를 지원하지 않는 브라우저입니다. 주소를 복사해주세요!');
+        }
+    }
+
+    render();
+</script>
+</body>
+</html>
